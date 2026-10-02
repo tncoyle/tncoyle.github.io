@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Puff the Breathing Buddy</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#fff7ea;--navy:#2a2350;--c:#7fd6e8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100vh;padding:16px;font-family:'Fredoka','Trebuchet MS','Arial Rounded MT Bold',sans-serif;color:var(--ink);background:#2a2d6e linear-gradient(#1f2a5c,#3a2f7a 65%,#5a3f8f) fixed;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+main{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.stage{position:relative;width:min(78vw,340px);aspect-ratio:1}
+.stage svg{width:100%;height:100%;display:block;overflow:visible}
+.count{position:absolute;right:2%;bottom:2%;width:15%;aspect-ratio:1;border-radius:50%;background:var(--navy);color:var(--c);font-size:clamp(20px,6vw,30px);font-weight:600;display:grid;place-items:center;border:3px solid var(--c);transition:color .6s,border-color .6s}
+.orb,.halo{fill:var(--c);transition:fill .6s}
+.halo{opacity:.25}
+.ring{stroke:var(--c);transition:stroke .6s}
+.ink{fill:var(--navy)}.line{stroke:var(--navy);fill:none;stroke-width:7;stroke-linecap:round}
+.cheek{fill:#ff9fb5;opacity:.6}
+svg .closed,svg .m-hold,svg .m-out{display:none}
+svg[data-f=hold] .m-in,svg[data-f=out] .m-in,svg[data-f=out] .open{display:none}
+svg[data-f=hold] .m-hold,svg[data-f=out] .m-out,svg[data-f=out] .closed{display:inline}
+.word{font-size:clamp(34px,10vw,48px);font-weight:600;margin:14px 0 0;color:var(--c);transition:color .6s;line-height:1.1}
+.sub{font-size:clamp(17px,4.6vw,21px);margin:0;min-height:1.4em;opacity:.92}
+.dots{display:flex;gap:10px;margin:14px 0 6px}
+.dots i{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);opacity:.7}
+.dots i.on{background:#ffd66b;border-color:#ffd66b;opacity:1}
+button{font:inherit;cursor:pointer;color:inherit}
+.go{font-size:24px;font-weight:600;padding:14px 44px;border-radius:999px;border:0;background:#ffd66b;color:var(--navy);box-shadow:0 6px 0 #c9a23a}
+.go:active{transform:translateY(3px);box-shadow:0 3px 0 #c9a23a}
+.pace{display:flex;gap:8px;margin-top:16px;align-items:center;font-size:16px}
+.pace button{background:none;border:2px solid var(--ink);border-radius:999px;padding:6px 14px}
+.pace button[aria-pressed=true]{background:var(--ink);color:var(--navy)}
+.pace button:disabled{opacity:.45;cursor:default}
+button:focus-visible{outline:4px solid #fff;outline-offset:3px}
+</style>
+</head>
+<body>
+<main>
+  <div class="stage">
+    <svg id="puff" viewBox="0 0 320 320" data-f="in" role="img" aria-label="Puff, a friendly round buddy who grows and shrinks as you breathe">
+      <circle cx="160" cy="160" r="152" fill="none" stroke="#fff" stroke-opacity=".15" stroke-width="8"/>
+      <circle id="ring" class="ring" cx="160" cy="160" r="152" fill="none" stroke-width="8" stroke-linecap="round" transform="rotate(-90 160 160)"/>
+      <g id="body" transform="translate(160 160) scale(.75)">
+        <circle class="halo" r="146"/>
+        <circle class="orb" r="128"/>
+        <circle class="cheek" cx="-66" cy="18" r="15"/><circle class="cheek" cx="66" cy="18" r="15"/>
+        <g class="open"><circle class="ink" cx="-42" cy="-18" r="11"/><circle class="ink" cx="42" cy="-18" r="11"/></g>
+        <g class="closed"><path class="line" d="M-56 -16q14 14 28 0M28 -16q14 14 28 0"/></g>
+        <path class="line m-in" d="M-24 22q24 24 48 0"/>
+        <path class="line m-hold" d="M-18 36h36"/>
+        <circle class="ink m-out" cx="0" cy="36" r="11"/>
+      </g>
+    </svg>
+    <div class="count" id="count" aria-hidden="true">4</div>
+  </div>
+  <div aria-live="polite">
+    <p class="word" id="word">Ready?</p>
+    <p class="sub" id="sub">Tap start and copy Puff.</p>
+  </div>
+  <div class="dots" id="dots" aria-label="Breaths finished"><i></i><i></i><i></i><i></i><i></i></div>
+  <button class="go" id="go">Start</button>
+  <div class="pace" id="pace">Speed:
+    <button data-d="3" aria-pressed="false">Quick</button>
+    <button data-d="4" aria-pressed="true">Easy</button>
+    <button data-d="5" aria-pressed="false">Slow</button>
+  </div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const body=$('body'),ring=$('ring'),svg=$('puff'),root=document.documentElement;
+const C=2*Math.PI*152;ring.style.strokeDasharray=C;ring.style.strokeDashoffset=C;
+const P=[
+ {f:'in',w:'Breathe in',s:'Smell the flower, nice and slow.',c:'#7fd6e8'},
+ {f:'hold',w:'Hold',s:'Keep your belly balloon full.',c:'#ffd66b'},
+ {f:'out',w:'Breathe out',s:'Blow out the candle, softly.',c:'#c9a7ff'}];
+const ROUNDS=5,calm=matchMedia('(prefers-reduced-motion: reduce)').matches,AMP=calm?.12:.45;
+let run=false,i=0,t0=0,round=0,D=4;
+const ease=p=>p*p*(3-2*p);
+function look(p){root.style.setProperty('--c',p.c);svg.dataset.f=p.f;$('word').textContent=p.w;$('sub').textContent=p.s}
+function dots(){[...$('dots').children].forEach((d,k)=>d.classList.toggle('on',k<round))}
+function scale(s){body.setAttribute('transform','translate(160 160) scale('+s+')')}
+function idle(w,s){run=false;$('go').textContent=w?'Go again':'Start';$('word').textContent=w||'Ready?';$('sub').textContent=s||'Tap start and copy Puff.';
+ look({f:'in',c:'#7fd6e8',w:$('word').textContent,s:$('sub').textContent});scale(.75);ring.style.strokeDashoffset=C;$('count').textContent=D;
+ document.querySelectorAll('.pace button').forEach(b=>b.disabled=false)}
+function frame(now){
+ if(!run)return;
+ let e=(now-t0)/1000;
+ if(e>=D){i++;t0=now;e=0;if(i>2){i=0;round++;dots();if(round>=ROUNDS){idle('Great job!','You took 5 calm breaths. Puff feels calm too.');return}}look(P[i])}
+ const p=e/D;
+ const s=i===0?(1-AMP)+AMP*ease(p):i===1?1+(calm?0:.015*Math.sin(p*12.56)):1-AMP*ease(p);
+ scale(s.toFixed(3));
+ ring.style.strokeDashoffset=C*(1-p);
+ $('count').textContent=Math.max(1,Math.ceil(D-e));
+ requestAnimationFrame(frame)}
+$('go').onclick=()=>{
+ if(run){round=0;dots();idle();return}
+ run=true;i=0;round=0;dots();look(P[0]);$('go').textContent='Stop';
+ document.querySelectorAll('.pace button').forEach(b=>b.disabled=true);
+ requestAnimationFrame(n=>{t0=n;frame(n)})};
+$('pace').onclick=e=>{const b=e.target.closest('button');if(!b||run)return;D=+b.dataset.d;
+ document.querySelectorAll('.pace button').forEach(x=>x.setAttribute('aria-pressed',x===b));$('count').textContent=D};
+</script>
+</body>
+</html>
